@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kiddo Doodle Pad</title>
+    <style>
+        :root {
+            --primary-bg: #FFEFBA;
+            --accent-pink: #FF6B6B;
+            --accent-blue: #4ECDC4;
+            --accent-yellow: #FFE66D;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Comic Sans MS', 'Chalkboard SE', cursive;
+            background-color: var(--primary-bg);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden; /* Prevents scrolling while drawing */
+            touch-action: none;
+        }
+
+        /* Toolbar Styles */
+        #toolbar {
+            background: white;
+            padding: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+
+        .tool-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 10px;
+            border-radius: 15px;
+            background: #f0f0f0;
+        }
+
+        button {
+            padding: 12px 18px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        button:active { transform: scale(0.9); }
+
+        .btn-clear { background-color: var(--accent-pink); color: white; }
+        .btn-save { background-color: var(--accent-blue); color: white; }
+        .btn-erase { background-color: #95a5a6; color: white; }
+
+        input[type="color"] {
+            width: 45px;
+            height: 45px;
+            border: none;
+            cursor: pointer;
+            background: none;
+        }
+
+        /* Canvas Styles */
+        #canvas-container {
+            flex-grow: 1;
+            position: relative;
+            background: white;
+            margin: 10px;
+            border: 5px dashed var(--accent-blue);
+            border-radius: 20px;
+        }
+
+        canvas {
+            display: block;
+            touch-action: none; /* Critical for mobile */
+        }
+    </style>
+</head>
+<body>
+
+<div id="toolbar">
+    <div class="tool-group">
+        <span>🎨 Color:</span>
+        <input type="color" id="colorPicker" value="#FF6B6B">
+    </div>
+
+    <div class="tool-group">
+        <span>🖌️ Size:</span>
+        <input type="range" id="sizePicker" min="2" max="50" value="10">
+    </div>
+
+    <button id="eraserBtn" class="btn-erase">🧽 Eraser</button>
+    <button id="clearBtn" class="btn-clear">🗑️ Clear All</button>
+    <button id="saveBtn" class="btn-save">📸 Save Photo</button>
+</div>
+
+<div id="canvas-container">
+    <canvas id="doodleCanvas"></canvas>
+</div>
+
+<script>
+    const canvas = document.getElementById('doodleCanvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('canvas-container');
+    const colorPicker = document.getElementById('colorPicker');
+    const sizePicker = document.getElementById('sizePicker');
+    const clearBtn = document.getElementById('clearBtn');
+    const eraserBtn = document.getElementById('eraserBtn');
+    const saveBtn = document.getElementById('saveBtn');
+
+    let drawing = false;
+    let erasing = false;
+
+    // Adjust canvas size to fit container
+    function resizeCanvas() {
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Drawing Logic
+    function startPosition(e) {
+        drawing = true;
+        draw(e);
+    }
+
+    function endPosition() {
+        drawing = false;
+        ctx.beginPath(); // Resets path so lines don't connect
+    }
+
+    function draw(e) {
+        if (!drawing) return;
+
+        // Get coordinates for both mouse and touch
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+
+        ctx.lineWidth = sizePicker.value;
+        ctx.strokeStyle = erasing ? '#FFFFFF' : colorPicker.value;
+
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+    }
+
+    // Toggle Eraser
+    eraserBtn.addEventListener('click', () => {
+        erasing = !erasing;
+        eraserBtn.style.backgroundColor = erasing ? '#2c3e50' : '#95a5a6';
+        eraserBtn.innerText = erasing ? '✏️ Draw' : '🧽 Eraser';
+    });
+
+    // Clear Canvas
+    clearBtn.addEventListener('click', () => {
+        if(confirm("Start a new drawing?")) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+    });
+
+    // Save Image
+    saveBtn.addEventListener('click', () => {
+        const link = document.createElement('a');
+        link.download = 'my-masterpiece.png';
+        link.href = canvas.toDataURL();
+        link.click();
+    });
+
+    // Event Listeners for Mouse
+    canvas.addEventListener('mousedown', startPosition);
+    canvas.addEventListener('mouseup', endPosition);
+    canvas.addEventListener('mousemove', draw);
+
+    // Event Listeners for Touch
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault(); 
+        startPosition(e);
+    }, { passive: false });
+    
+    canvas.addEventListener('touchend', endPosition);
+    
+    canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        draw(e);
+    }, { passive: false });
+
+</script>
+
+</body>
+</html>
